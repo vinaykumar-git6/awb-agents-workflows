@@ -7,6 +7,7 @@ e.g. awb-input/AWB_BATCH_2026-06-18/2026-06-18/EK0123/176-12345678.pdf
 from __future__ import annotations
 
 import os
+from urllib.parse import urlparse
 
 from azure.identity import DefaultAzureCredential
 from azure.storage.blob import BlobServiceClient
@@ -72,3 +73,42 @@ def upload_split_pdfs(
         )
         written.append(f"{BLOB_CONTAINER}/{blob_path}")
     return written
+
+
+def _service_client() -> BlobServiceClient:
+    if not BLOB_ACCOUNT_URL:
+        raise RuntimeError("BLOB_ACCOUNT_URL is not configured.")
+    return BlobServiceClient(account_url=BLOB_ACCOUNT_URL, credential=_credential())
+
+
+def download_blob(blob_url: str) -> bytes:
+    """Download a blob given its full https URL using managed identity."""
+    parsed = urlparse(blob_url)
+    # Path is /<container>/<blob path...>
+    parts = parsed.path.lstrip("/").split("/", 1)
+    if len(parts) != 2:
+        raise ValueError(f"Unexpected blob URL: {blob_url}")
+    container_name, blob_name = parts
+    service = _service_client()
+    blob = service.get_blob_client(container=container_name, blob=blob_name)
+    return blob.download_blob().readall()
+
+
+def upload_to_prefix(files: dict[str, bytes], dest_prefix: str) -> list[str]:
+    """Upload each per-AWB PDF under <container>/<dest_prefix>/<awb>.pdf."""
+    service = _service_client()
+    container = service.get_container_client(BLOB_CONTAINER)
+    prefix = dest_prefix.strip("/")
+
+    written: list[str] = []
+    for filename, data in files.items():
+        blob_path = f"{prefix}/{filename}"
+        container.upload_blob(
+            name=blob_path,
+            data=data,
+            overwrite=True,
+            content_type="application/pdf",
+        )
+        written.append(f"{BLOB_CONTAINER}/{blob_path}")
+    return written
+

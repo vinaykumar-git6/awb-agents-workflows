@@ -6,12 +6,19 @@ import io
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.responses import JSONResponse, StreamingResponse
 
+import consumer
 import storage
 from splitter import build_zip, split_pdf
 
 app = FastAPI(title="AWB PDF Splitter", version="1.0.0")
 
 MAX_BYTES = 100 * 1024 * 1024  # 100 MB upload cap
+
+
+@app.on_event("startup")
+def _start_consumer() -> None:
+    """Start the Service Bus queue consumer in the background, if configured."""
+    consumer.start_background()
 
 
 @app.get("/health")

@@ -10,7 +10,7 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY splitter.py storage.py main.py ./
+COPY splitter.py storage.py consumer.py main.py ./
 
 # Run as non-root
 RUN useradd -m appuser
