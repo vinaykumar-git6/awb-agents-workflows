@@ -1,0 +1,207 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.39.26.7824",
+      "templateHash": "9417017308736189213"
+    }
+  },
+  "parameters": {
+    "spokeVnetName": {
+      "type": "string",
+      "defaultValue": "vnet-ek",
+      "metadata": {
+        "description": "Spoke VNet (app/ACA side) name."
+      }
+    },
+    "hubVnetName": {
+      "type": "string",
+      "defaultValue": "vnet-hub",
+      "metadata": {
+        "description": "Hub VNet name (private endpoints + DNS)."
+      }
+    },
+    "hubResourceGroup": {
+      "type": "string",
+      "defaultValue": "azure-vk-hub",
+      "metadata": {
+        "description": "Resource group that holds the hub VNet and private DNS zones."
+      }
+    },
+    "tags": {
+      "type": "object",
+      "defaultValue": {
+        "workload": "skycargo-awb",
+        "component": "network-peering"
+      },
+      "metadata": {
+        "description": "Tags."
+      }
+    }
+  },
+  "variables": {
+    "dnsZoneServiceBus": "privatelink.servicebus.windows.net",
+    "dnsZoneBlob": "privatelink.blob.core.windows.net"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Network/virtualNetworks/virtualNetworkPeerings",
+      "apiVersion": "2023-09-01",
+      "name": "[format('{0}/{1}', parameters('spokeVnetName'), format('peer-to-{0}', parameters('hubVnetName')))]",
+      "properties": {
+        "remoteVirtualNetwork": {
+          "id": "[extensionResourceId(format('/subscriptions/{0}/resourceGroups/{1}', subscription().subscriptionId, parameters('hubResourceGroup')), 'Microsoft.Network/virtualNetworks', parameters('hubVnetName'))]"
+        },
+        "allowVirtualNetworkAccess": true,
+        "allowForwardedTraffic": true,
+        "allowGatewayTransit": false,
+        "useRemoteGateways": false
+      }
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "hub-side-peering-dns",
+      "resourceGroup": "[parameters('hubResourceGroup')]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "hubVnetName": {
+            "value": "[parameters('hubVnetName')]"
+          },
+          "spokeVnetName": {
+            "value": "[parameters('spokeVnetName')]"
+          },
+          "spokeVnetId": {
+            "value": "[resourceId('Microsoft.Network/virtualNetworks', parameters('spokeVnetName'))]"
+          },
+          "dnsZoneServiceBus": {
+            "value": "[variables('dnsZoneServiceBus')]"
+          },
+          "dnsZoneBlob": {
+            "value": "[variables('dnsZoneBlob')]"
+          },
+          "tags": {
+            "value": "[parameters('tags')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.39.26.7824",
+              "templateHash": "7668341018966335581"
+            }
+          },
+          "parameters": {
+            "hubVnetName": {
+              "type": "string",
+              "metadata": {
+                "description": "Hub VNet name."
+              }
+            },
+            "spokeVnetName": {
+              "type": "string",
+              "metadata": {
+                "description": "Spoke VNet name (used for naming)."
+              }
+            },
+            "spokeVnetId": {
+              "type": "string",
+              "metadata": {
+                "description": "Spoke VNet resource id."
+              }
+            },
+            "dnsZoneServiceBus": {
+              "type": "string",
+              "metadata": {
+                "description": "Service Bus private DNS zone name."
+              }
+            },
+            "dnsZoneBlob": {
+              "type": "string",
+              "metadata": {
+                "description": "Blob private DNS zone name."
+              }
+            },
+            "tags": {
+              "type": "object",
+              "metadata": {
+                "description": "Tags."
+              }
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Network/virtualNetworks/virtualNetworkPeerings",
+              "apiVersion": "2023-09-01",
+              "name": "[format('{0}/{1}', parameters('hubVnetName'), format('peer-to-{0}', parameters('spokeVnetName')))]",
+              "properties": {
+                "remoteVirtualNetwork": {
+                  "id": "[parameters('spokeVnetId')]"
+                },
+                "allowVirtualNetworkAccess": true,
+                "allowForwardedTraffic": true,
+                "allowGatewayTransit": false,
+                "useRemoteGateways": false
+              }
+            },
+            {
+              "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
+              "apiVersion": "2020-06-01",
+              "name": "[format('{0}/{1}', parameters('dnsZoneServiceBus'), format('link-{0}', parameters('spokeVnetName')))]",
+              "location": "global",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "registrationEnabled": false,
+                "virtualNetwork": {
+                  "id": "[parameters('spokeVnetId')]"
+                }
+              }
+            },
+            {
+              "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
+              "apiVersion": "2020-06-01",
+              "name": "[format('{0}/{1}', parameters('dnsZoneBlob'), format('link-{0}', parameters('spokeVnetName')))]",
+              "location": "global",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "registrationEnabled": false,
+                "virtualNetwork": {
+                  "id": "[parameters('spokeVnetId')]"
+                }
+              }
+            }
+          ],
+          "outputs": {
+            "hubToSpokePeeringId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Network/virtualNetworks/virtualNetworkPeerings', parameters('hubVnetName'), format('peer-to-{0}', parameters('spokeVnetName')))]"
+            },
+            "sbZoneLinkId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Network/privateDnsZones/virtualNetworkLinks', parameters('dnsZoneServiceBus'), format('link-{0}', parameters('spokeVnetName')))]"
+            },
+            "blobZoneLinkId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Network/privateDnsZones/virtualNetworkLinks', parameters('dnsZoneBlob'), format('link-{0}', parameters('spokeVnetName')))]"
+            }
+          }
+        }
+      }
+    }
+  ],
+  "outputs": {
+    "spokeToHubPeeringId": {
+      "type": "string",
+      "value": "[resourceId('Microsoft.Network/virtualNetworks/virtualNetworkPeerings', parameters('spokeVnetName'), format('peer-to-{0}', parameters('hubVnetName')))]"
+    }
+  }
+}
