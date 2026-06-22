@@ -12,15 +12,13 @@ $ErrorActionPreference = 'Stop'
 # ---- Settings (keep in sync with main.bicepparam) ----
 $RG            = 'emirates-ai-usecase'
 $LOCATION      = 'uaenorth'
-$ACR           = 'skycargoacrek'                 # must be globally unique
+$ACR           = 'acrvk012826'                   # existing ACR
+$ACR_RG        = 'azure-vk-rg'                    # resource group that holds the ACR
 $IMAGE         = 'awb-pdf-splitter:v1'
 $SOURCE_DIR    = '../../awb-pdf-splitter'         # app source (Dockerfile lives here)
 
-# ---- 1. Ensure the ACR exists and build the image in it (no local Docker) ----
-if (-not (az acr show -g $RG -n $ACR 2>$null)) {
-    az acr create -g $RG -n $ACR --sku Standard | Out-Null
-}
-az acr build -g $RG -r $ACR -t $IMAGE $SOURCE_DIR
+# ---- 1. Build the image into the existing ACR (no local Docker) ----
+az acr build -g $ACR_RG -r $ACR -t $IMAGE $SOURCE_DIR
 
 # ---- 2. Deploy the private ACA infrastructure + app ----
 az deployment group create `

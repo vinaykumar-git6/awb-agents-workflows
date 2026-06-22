@@ -40,11 +40,20 @@ param serviceBusSku string = 'Premium'
 @description('Service Bus queue name.')
 param queueName string = 'aws-splitter-q'
 
+@description('Service Bus queue that receives events for split AWB PDFs.')
+param workerQueueName string = 'awb-worker-q'
+
+@description('Container that holds the split AWB PDFs (output of the splitter).')
+param splitContainerName string = 'awb-split'
+
 @description('Event Grid system topic name.')
 param systemTopicName string = 'awb-blob-events'
 
 @description('Event Grid subscription name.')
 param eventSubscriptionName string = 'awb-blob-to-splitter'
+
+@description('Event Grid subscription name for split PDFs -> worker queue.')
+param workerEventSubscriptionName string = 'awb-split-to-worker'
 
 // ---------------------------------------------------------------------------
 // Private networking parameters
@@ -136,6 +145,19 @@ resource queue 'Microsoft.ServiceBus/namespaces/queues@2022-10-01-preview' = {
   }
 }
 
+// Queue that receives a pointer event for each split AWB PDF written to the
+// awb-split container. Consumed by the downstream worker.
+resource workerQueue 'Microsoft.ServiceBus/namespaces/queues@2022-10-01-preview' = {
+  parent: serviceBusNamespace
+  name: workerQueueName
+  properties: {
+    lockDuration: 'PT1M'
+    maxDeliveryCount: 10
+    deadLetteringOnMessageExpiration: true
+    enablePartitioning: false
+  }
+}
+
 resource systemTopic 'Microsoft.EventGrid/systemTopics@2022-06-15' = {
   name: systemTopicName
   location: location
@@ -195,9 +217,40 @@ resource eventSubscription 'Microsoft.EventGrid/systemTopics/eventSubscriptions@
   ]
 }
 
-// ---------------------------------------------------------------------------
-// Private endpoints
-// ---------------------------------------------------------------------------
+// Split PDFs written to the awb-split container -> worker queue.
+resource workerEventSubscription 'Microsoft.EventGrid/systemTopics/eventSubscriptions@2022-06-15' = {
+  parent: systemTopic
+  name: workerEventSubscriptionName
+  properties: {
+    deliveryWithResourceIdentity: {
+      identity: {
+        type: 'SystemAssigned'
+      }
+      destination: {
+        endpointType: 'ServiceBusQueue'
+        properties: {
+          resourceId: workerQueue.id
+        }
+      }
+    }
+    filter: {
+      includedEventTypes: [
+        'Microsoft.Storage.BlobCreated'
+      ]
+      subjectBeginsWith: '/blobServices/default/containers/${splitContainerName}/blobs/'
+      subjectEndsWith: '.pdf'
+      enableAdvancedFilteringOnArrays: true
+    }
+    eventDeliverySchema: 'EventGridSchema'
+    retryPolicy: {
+      maxDeliveryAttempts: 30
+      eventTimeToLiveInMinutes: 1440
+    }
+  }
+  dependsOn: [
+    raSystemTopicSbSender
+  ]
+}
 
 // Service Bus private endpoint (Premium SKU required).
 resource serviceBusPrivateEndpoint 'Microsoft.Network/privateEndpoints@2023-09-01' = {
@@ -277,6 +330,7 @@ resource storagePeDnsGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGro
 
 output serviceBusNamespaceId string = serviceBusNamespace.id
 output queueId string = queue.id
+output workerQueueId string = workerQueue.id
 output systemTopicId string = systemTopic.id
 output systemTopicPrincipalId string = systemTopic.identity.principalId
 output serviceBusPrivateEndpointId string = serviceBusPrivateEndpoint.id

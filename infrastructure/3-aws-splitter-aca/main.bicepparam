@@ -7,9 +7,10 @@ param vnetName = 'vnet-ek'
 param acaSubnetName = 'snet-aca-infra'
 param acaSubnetPrefix = '10.10.4.0/23'
 
-// Container registry + image (image is built by deploy.ps1 before deployment).
-param acrName = 'skycargoacrek'
-param containerImage = 'skycargoacrek.azurecr.io/awb-pdf-splitter:v1'
+// Container registry + image (existing ACR in azure-vk-rg).
+param acrName = 'acrvk012826'
+param acrResourceGroup = 'azure-vk-rg'
+param containerImage = 'acrvk012826.azurecr.io/awb-pdf-splitter:v1'
 
 param appName = 'awb-pdf-splitter'
 param environmentName = 'cae-skycargo-internal'

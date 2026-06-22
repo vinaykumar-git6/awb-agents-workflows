@@ -19,6 +19,7 @@ import json
 import logging
 import os
 import threading
+import time
 from urllib.parse import urlparse
 
 from azure.identity import DefaultAzureCredential
@@ -28,6 +29,20 @@ import storage
 from splitter import split_pdf
 
 logger = logging.getLogger("awb.consumer")
+
+# Errors that mean the referenced blob is not a usable PDF. These messages will
+# never succeed on retry, so they are dead-lettered instead of abandoned.
+try:
+    from pypdf.errors import PdfReadError, PdfStreamError
+
+    PERMANENT_ERRORS: tuple[type[Exception], ...] = (
+        PdfReadError,
+        PdfStreamError,
+        ValueError,
+        json.JSONDecodeError,
+    )
+except Exception:  # noqa: BLE001 - pypdf always present, but stay defensive
+    PERMANENT_ERRORS = (ValueError, json.JSONDecodeError)
 
 # Fully qualified namespace, e.g. awb-sb-ek.servicebus.windows.net
 SERVICEBUS_NAMESPACE = os.getenv("SERVICEBUS_NAMESPACE", "")
@@ -81,6 +96,16 @@ def process_message(message_body: str) -> list[str]:
         logger.warning("Message had no usable blob URL; skipping.")
         return []
 
+    blob_path = urlparse(blob_url).path.lstrip("/")
+    # Skip our own split outputs to avoid an infinite re-processing loop, and
+    # ignore anything that is not a PDF (e.g. images/html uploaded under pdf/).
+    if f"/{SPLIT_SUBFOLDER}/" in f"/{blob_path}":
+        logger.info("Skipping split output (avoids recursion): %s", blob_path)
+        return []
+    if not blob_path.lower().endswith(".pdf"):
+        logger.info("Skipping non-PDF blob: %s", blob_path)
+        return []
+
     logger.info("Processing blob: %s", blob_url)
     pdf_bytes = storage.download_blob(blob_url)
     files = split_pdf(pdf_bytes)
@@ -103,17 +128,35 @@ def run() -> None:
     logger.info(
         "Starting Service Bus consumer on %s / %s", SERVICEBUS_NAMESPACE, QUEUE_NAME
     )
-    client = ServiceBusClient(SERVICEBUS_NAMESPACE, credential=_credential())
-    with client:
-        receiver = client.get_queue_receiver(queue_name=QUEUE_NAME, max_wait_time=30)
-        with receiver:
-            for message in receiver:
-                try:
-                    process_message(str(message))
-                    receiver.complete_message(message)
-                except Exception:  # noqa: BLE001
-                    logger.exception("Failed to process message; abandoning.")
-                    receiver.abandon_message(message)
+    # Run forever. The receiver iterator returns after max_wait_time seconds of
+    # idle, so we wrap it in an outer loop to keep listening indefinitely. The
+    # client/receiver are also recreated on connection errors so the worker
+    # self-heals instead of dying.
+    while True:
+        try:
+            client = ServiceBusClient(SERVICEBUS_NAMESPACE, credential=_credential())
+            with client:
+                receiver = client.get_queue_receiver(
+                    queue_name=QUEUE_NAME, max_wait_time=30
+                )
+                with receiver:
+                    for message in receiver:
+                        try:
+                            process_message(str(message))
+                            receiver.complete_message(message)
+                        except PERMANENT_ERRORS as exc:  # poison: do not retry
+                            logger.exception("Invalid message content; dead-lettering.")
+                            receiver.dead_letter_message(
+                                message,
+                                reason="InvalidContent",
+                                error_description=str(exc)[:200],
+                            )
+                        except Exception:  # noqa: BLE001 - transient: retry later
+                            logger.exception("Transient failure; abandoning for retry.")
+                            receiver.abandon_message(message)
+        except Exception:  # noqa: BLE001 - connection-level error: reconnect
+            logger.exception("Service Bus receiver error; reconnecting in 5s.")
+            time.sleep(5)
 
 
 def start_background() -> threading.Thread | None:

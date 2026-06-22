@@ -28,6 +28,9 @@ param acaSubnetPrefix string = '10.10.4.0/23'
 @description('Existing Azure Container Registry name (image is built here first).')
 param acrName string
 
+@description('Resource group that holds the Azure Container Registry.')
+param acrResourceGroup string = resourceGroup().name
+
 @description('Container image reference, e.g. <acr>.azurecr.io/awb-pdf-splitter:v1.')
 param containerImage string
 
@@ -75,6 +78,7 @@ resource vnet 'Microsoft.Network/virtualNetworks@2023-09-01' existing = {
 
 resource acr 'Microsoft.ContainerRegistry/registries@2023-07-01' existing = {
   name: acrName
+  scope: resourceGroup(acrResourceGroup)
 }
 
 resource storageAccount 'Microsoft.Storage/storageAccounts@2023-05-01' existing = {
@@ -220,13 +224,14 @@ resource containerApp 'Microsoft.App/containerApps@2024-03-01' = {
 // Role assignments for the app's managed identity
 // ---------------------------------------------------------------------------
 
-resource raAcrPull 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(acr.id, containerApp.id, roleAcrPull)
-  scope: acr
-  properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roleAcrPull)
+// AcrPull is granted in the ACR's resource group via a module (cross-RG scope).
+module raAcrPull 'acr-pull.bicep' = {
+  name: 'aca-acrpull'
+  scope: resourceGroup(acrResourceGroup)
+  params: {
+    acrName: acrName
     principalId: containerApp.identity.principalId
-    principalType: 'ServicePrincipal'
+    roleAcrPull: roleAcrPull
   }
 }
 

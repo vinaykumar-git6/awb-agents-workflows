@@ -17,6 +17,10 @@ from azure.storage.blob import BlobServiceClient
 BLOB_ACCOUNT_URL = os.getenv("BLOB_ACCOUNT_URL", "")
 # Destination container (the "awb_input" root).
 BLOB_CONTAINER = os.getenv("BLOB_CONTAINER", "awb-input")
+# Separate output container for split AWB PDFs. Kept distinct from the input
+# container so that writing split files does NOT trigger the Event Grid
+# subscription that watches the input container (prevents re-processing loops).
+BLOB_OUTPUT_CONTAINER = os.getenv("BLOB_OUTPUT_CONTAINER", "awb-split")
 # Virtual path template within the container. Available fields:
 #   {document_name} {date} {flight} {awb}
 BLOB_PATH_TEMPLATE = os.getenv(
@@ -95,9 +99,13 @@ def download_blob(blob_url: str) -> bytes:
 
 
 def upload_to_prefix(files: dict[str, bytes], dest_prefix: str) -> list[str]:
-    """Upload each per-AWB PDF under <container>/<dest_prefix>/<awb>.pdf."""
+    """Upload each per-AWB PDF under <output-container>/<dest_prefix>/<awb>.pdf.
+
+    Writes to BLOB_OUTPUT_CONTAINER (default "awb-split"), which is intentionally
+    different from the watched input container to avoid recursive events.
+    """
     service = _service_client()
-    container = service.get_container_client(BLOB_CONTAINER)
+    container = service.get_container_client(BLOB_OUTPUT_CONTAINER)
     prefix = dest_prefix.strip("/")
 
     written: list[str] = []
@@ -109,6 +117,6 @@ def upload_to_prefix(files: dict[str, bytes], dest_prefix: str) -> list[str]:
             overwrite=True,
             content_type="application/pdf",
         )
-        written.append(f"{BLOB_CONTAINER}/{blob_path}")
+        written.append(f"{BLOB_OUTPUT_CONTAINER}/{blob_path}")
     return written
 

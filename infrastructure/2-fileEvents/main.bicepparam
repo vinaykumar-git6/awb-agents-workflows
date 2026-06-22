@@ -17,6 +17,11 @@ param queueName = 'aws-splitter-q'
 param systemTopicName = 'awb-blob-events'
 param eventSubscriptionName = 'awb-blob-to-splitter'
 
+// Split PDFs (output of the splitter) -> worker queue.
+param workerQueueName = 'awb-worker-q'
+param splitContainerName = 'awb-split'
+param workerEventSubscriptionName = 'awb-split-to-worker'
+
 // Private networking (hub VNet + private DNS zones live in azure-vk-hub).
 param networkResourceGroup = 'azure-vk-hub'
 param vnetName = 'vnet-hub'
