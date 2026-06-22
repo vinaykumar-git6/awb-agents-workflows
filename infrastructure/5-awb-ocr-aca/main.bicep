@@ -156,8 +156,22 @@ resource containerApp 'Microsoft.App/containerApps@2024-03-01' = {
         }
       ]
       scale: {
-        minReplicas: 1
+        minReplicas: 0
         maxReplicas: 5
+        rules: [
+          {
+            name: 'sb-queue-length'
+            custom: {
+              type: 'azure-servicebus'
+              identity: 'system'
+              metadata: {
+                namespace: serviceBusNamespaceName
+                queueName: queueName
+                messageCount: '5'
+              }
+            }
+          }
+        ]
       }
     }
   }
