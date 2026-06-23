@@ -1,0 +1,42 @@
+table Date
+	lineageTag: a1b2c3d4-0003-0001-0001-000000000001
+	dataCategory: Time
+
+	measure 'AWBs (Last 30 Days)' = CALCULATE([Total AWBs], 'Date'[Date] >= MAX('Date'[Date]) - 30)
+		formatString: #,0
+
+	column Date
+		dataType: dateTime
+		isKey
+		formatString: yyyy-mm-dd
+		lineageTag: a1b2c3d4-0003-0002-0001-000000000001
+		summarizeBy: none
+		sourceColumn: [Date]
+
+	column Year = YEAR('Date'[Date])
+		dataType: int64
+		lineageTag: a1b2c3d4-0003-0002-0001-000000000002
+		summarizeBy: none
+
+	column Month = FORMAT('Date'[Date], "yyyy-MM")
+		dataType: string
+		lineageTag: a1b2c3d4-0003-0002-0001-000000000003
+		summarizeBy: none
+
+	column MonthName = FORMAT('Date'[Date], "MMM yyyy")
+		dataType: string
+		lineageTag: a1b2c3d4-0003-0002-0001-000000000004
+		summarizeBy: none
+		sortByColumn: Month
+
+	column Day = DAY('Date'[Date])
+		dataType: int64
+		lineageTag: a1b2c3d4-0003-0002-0001-000000000005
+		summarizeBy: none
+
+	partition Date = calculated
+		mode: import
+		source =
+			CALENDAR(DATE(2025, 1, 1), DATE(2027, 12, 31))
+
+	annotation PBI_Id = DateTableTemplate

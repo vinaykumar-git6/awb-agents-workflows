@@ -1,0 +1,41 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "ovTrend",
+  "position": { "x": 16, "y": 208, "z": 6, "width": 760, "height": 290, "tabOrder": 6 },
+  "visual": {
+    "visualType": "areaChart",
+    "query": {
+      "queryState": {
+        "Category": {
+          "projections": [
+            {
+              "field": { "Column": { "Expression": { "SourceRef": { "Entity": "Date" } }, "Property": "Date" } },
+              "queryRef": "Date.Date",
+              "nativeQueryRef": "Date"
+            }
+          ]
+        },
+        "Y": {
+          "projections": [
+            {
+              "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "awb_analytics" } }, "Property": "Total AWBs" } },
+              "queryRef": "awb_analytics.Total AWBs",
+              "nativeQueryRef": "Total AWBs"
+            },
+            {
+              "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "awb_analytics" } }, "Property": "Failed AWBs" } },
+              "queryRef": "awb_analytics.Failed AWBs",
+              "nativeQueryRef": "Failed AWBs"
+            }
+          ]
+        }
+      }
+    },
+    "objects": {
+      "title": [
+        { "properties": { "text": { "expr": { "Literal": { "Value": "'AWB volume over time'" } } } } }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  }
+}

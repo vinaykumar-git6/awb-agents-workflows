@@ -55,6 +55,9 @@ param blobPathTemplate string = '{document_name}/{date}/{flight}/{awb}.pdf'
 @description('Existing Service Bus namespace that holds the splitter queue.')
 param serviceBusNamespaceName string = 'awb-sb-ek'
 
+@description('Queue the splitter publishes DB-update events to (consumed by awb-db-updater).')
+param dbUpdateQueueName string = 'async-db-update-q'
+
 @description('Container target port.')
 param targetPort int = 8000
 
@@ -67,6 +70,7 @@ param tags object = {
 var roleAcrPull = '7f951dda-4ed3-4680-a7ca-43fe172d538d'
 var roleStorageBlobDataContributor = 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
 var roleServiceBusDataReceiver = '4f6d3b9b-027b-4f4c-9142-0e5a2a2247e0'
+var roleServiceBusDataSender = '69a216fc-b8fb-44d8-bc22-1f3c2cd27a39'
 
 // ---------------------------------------------------------------------------
 // Existing resources
@@ -209,6 +213,10 @@ resource containerApp 'Microsoft.App/containerApps@2024-03-01' = {
               name: 'SERVICEBUS_NAMESPACE'
               value: '${serviceBusNamespaceName}.servicebus.windows.net'
             }
+            {
+              name: 'DB_UPDATE_QUEUE'
+              value: dbUpdateQueueName
+            }
           ]
         }
       ]
@@ -264,6 +272,17 @@ resource raSbReceiver 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   scope: serviceBusNamespace
   properties: {
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roleServiceBusDataReceiver)
+    principalId: containerApp.identity.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// Sender on the namespace so the splitter can publish to async-db-update-q.
+resource raSbSender 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(serviceBusNamespace.id, containerApp.id, roleServiceBusDataSender)
+  scope: serviceBusNamespace
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roleServiceBusDataSender)
     principalId: containerApp.identity.principalId
     principalType: 'ServicePrincipal'
   }

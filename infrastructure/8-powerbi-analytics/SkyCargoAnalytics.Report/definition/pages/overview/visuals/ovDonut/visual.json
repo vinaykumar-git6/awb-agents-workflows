@@ -1,0 +1,36 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "ovDonut",
+  "position": { "x": 792, "y": 208, "z": 7, "width": 472, "height": 290, "tabOrder": 7 },
+  "visual": {
+    "visualType": "donutChart",
+    "query": {
+      "queryState": {
+        "Category": {
+          "projections": [
+            {
+              "field": { "Column": { "Expression": { "SourceRef": { "Entity": "awb_analytics" } }, "Property": "final_state" } },
+              "queryRef": "awb_analytics.final_state",
+              "nativeQueryRef": "final_state"
+            }
+          ]
+        },
+        "Y": {
+          "projections": [
+            {
+              "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "awb_analytics" } }, "Property": "Total AWBs" } },
+              "queryRef": "awb_analytics.Total AWBs",
+              "nativeQueryRef": "Total AWBs"
+            }
+          ]
+        }
+      }
+    },
+    "objects": {
+      "title": [
+        { "properties": { "text": { "expr": { "Literal": { "Value": "'Outcome mix'" } } } } }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  }
+}

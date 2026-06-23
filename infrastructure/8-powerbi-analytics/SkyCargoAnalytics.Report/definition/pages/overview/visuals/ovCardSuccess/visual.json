@@ -1,0 +1,22 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "ovCardSuccess",
+  "position": { "x": 268, "y": 80, "z": 2, "width": 240, "height": 116, "tabOrder": 2 },
+  "visual": {
+    "visualType": "card",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "awb_analytics" } }, "Property": "Success Rate %" } },
+              "queryRef": "awb_analytics.Success Rate %",
+              "nativeQueryRef": "Success Rate %"
+            }
+          ]
+        }
+      }
+    },
+    "drillFilterOtherVisuals": true
+  }
+}

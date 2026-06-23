@@ -1,0 +1,32 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "ovBanner",
+  "position": { "x": 0, "y": 0, "z": 0, "width": 1280, "height": 64, "tabOrder": 0 },
+  "visual": {
+    "visualType": "textbox",
+    "objects": {
+      "general": [
+        {
+          "properties": {
+            "paragraphs": [
+              {
+                "textRuns": [
+                  {
+                    "value": "SkyCargo — AWB OCR Operations",
+                    "textStyle": { "fontFamily": "Segoe UI Semibold", "fontSize": "22px", "color": "#FFFFFF" }
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "visualContainerObjects": {
+      "background": [
+        { "properties": { "color": { "solid": { "color": { "expr": { "Literal": { "Value": "'#D71921'" } } } } } } }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  }
+}

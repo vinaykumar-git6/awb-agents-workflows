@@ -1,0 +1,22 @@
+model SkyCargoAnalytics
+	culture: en-US
+	defaultPowerBIDataSourceVersion: powerBI_V3
+	discourageImplicitMeasures
+	sourceQueryCulture: en-US
+
+annotation PBI_QueryOrder = ["awb_analytics","Date"]
+
+annotation PBI_ProTooling = ["DevMode"]
+
+/// Server FQDN of the PostgreSQL flexible server (override in Power BI parameters).
+expression PgServer = "devpostgresvinay.postgres.database.azure.com" meta [IsParameterQuery=true, Type="Text", IsParameterQueryRequired=true]
+
+/// Database name.
+expression PgDatabase = "postgres" meta [IsParameterQuery=true, Type="Text", IsParameterQueryRequired=true]
+
+ref table awb_analytics
+ref table Date
+
+relationship rel_Date_awb_analytics
+	fromColumn: awb_analytics.processed_date
+	toColumn: Date.Date

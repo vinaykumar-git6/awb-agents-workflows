@@ -42,6 +42,9 @@ param serviceBusNamespaceName string = 'awb-sb-ek'
 @description('Service Bus queue the worker consumes.')
 param queueName string = 'awb-worker-q'
 
+@description('Queue the worker publishes DB-update events to (consumed by awb-db-updater).')
+param dbUpdateQueueName string = 'async-db-update-q'
+
 @description('Document Intelligence (Form Recognizer) account name.')
 param docIntelAccountName string = 'docintelligencmbc'
 
@@ -159,6 +162,10 @@ resource containerApp 'Microsoft.App/containerApps@2024-03-01' = {
             {
               name: 'SERVICEBUS_QUEUE'
               value: queueName
+            }
+            {
+              name: 'DB_UPDATE_QUEUE'
+              value: dbUpdateQueueName
             }
             {
               name: 'DOCUMENTINTELLIGENCE_ENDPOINT'

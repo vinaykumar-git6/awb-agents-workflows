@@ -35,7 +35,7 @@ from azure.servicebus import ServiceBusClient, ServiceBusMessage
 
 from app.core.circuit_breaker import CircuitOpenError
 from app.orchestration import run_orchestration
-from app.services import storage
+from app.services import db_events, storage
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("awb.ocr.consumer")
@@ -97,10 +97,31 @@ def process_message(message_body: str) -> list[str]:
         logger.info("Skipping non-PDF blob: %s", blob_path)
         return []
 
+    doc_id = db_events.doc_id_from_url(blob_url)
+    awb_number = db_events.awb_number_from_url(blob_url)
+    received_at = datetime.now(timezone.utc)
+    source_name = blob_path.rsplit("/", 1)[-1]
+
+    # State transition: OCR processing has started for this AWB.
+    db_events.publish(
+        {
+            "stage": "awb_output",
+            "state": "inprogress",
+            "docId": doc_id,
+            "parentDocId": doc_id,
+            "awbNumber": awb_number,
+            "documentName": source_name,
+            "source": "ocr-worker",
+            "blobUrl": blob_url,
+            "blobName": blob_path,
+            "ocrEngine": db_events.OCR_ENGINE,
+            "receivedAt": received_at.isoformat(),
+        }
+    )
+
     logger.info("OCR processing blob: %s", blob_url)
     pdf_bytes = storage.download_blob(blob_url)
 
-    source_name = blob_path.rsplit("/", 1)[-1]
     # Sequential orchestration: OCR executor -> AWB formatting agent.
     json_text, md_text = asyncio.run(
         run_orchestration(pdf_bytes, source_name)
@@ -113,7 +134,47 @@ def process_message(message_body: str) -> list[str]:
         md_text=md_text,
     )
     logger.info("Wrote AWB outputs: %s", ", ".join(written))
+
+    # Resolve output blob URLs (awb-output/<prefix>.json|.md) for the DB row.
+    output_json_url = output_md_url = None
+    for path in written:
+        if path.lower().endswith(".json"):
+            output_json_url = db_events.blob_url_for(path)
+        elif path.lower().endswith(".md"):
+            output_md_url = db_events.blob_url_for(path)
+
+    processed_at = datetime.now(timezone.utc)
+    # State transition: OCR completed -> drives both processing + analytics rows.
+    db_events.publish(
+        {
+            "stage": "awb_output",
+            "state": "completed",
+            "docId": doc_id,
+            "parentDocId": doc_id,
+            "awbNumber": awb_number,
+            "documentName": source_name,
+            "source": "ocr-worker",
+            "blobUrl": blob_url,
+            "blobName": blob_path,
+            "ocrEngine": db_events.OCR_ENGINE,
+            "outputJsonUrl": output_json_url,
+            "outputMdUrl": output_md_url,
+            "receivedAt": received_at.isoformat(),
+            "processedAt": processed_at.isoformat(),
+            "processingSeconds": round(
+                (processed_at - received_at).total_seconds(), 3
+            ),
+        }
+    )
     return written
+
+
+def _blob_url_of(message) -> str | None:
+    """Best-effort blob URL extraction for failure reporting (never raises)."""
+    try:
+        return extract_blob_url(str(message))
+    except Exception:  # noqa: BLE001
+        return None
 
 
 def _attempt_of(message) -> int:
@@ -166,6 +227,11 @@ def run() -> None:
                             receiver.complete_message(message)
                         except PERMANENT_ERRORS as exc:
                             logger.exception("Permanent error; dead-lettering.")
+                            db_events.publish_failed(
+                                _blob_url_of(message),
+                                attempt=attempt,
+                                error=str(exc),
+                            )
                             receiver.dead_letter_message(
                                 message,
                                 reason="PermanentError",
@@ -176,6 +242,11 @@ def run() -> None:
                             if attempt + 1 >= MAX_ATTEMPTS:
                                 logger.exception(
                                     "Retries exhausted (%d); dead-lettering.", attempt
+                                )
+                                db_events.publish_failed(
+                                    _blob_url_of(message),
+                                    attempt=attempt,
+                                    error=str(exc),
                                 )
                                 receiver.dead_letter_message(
                                     message,

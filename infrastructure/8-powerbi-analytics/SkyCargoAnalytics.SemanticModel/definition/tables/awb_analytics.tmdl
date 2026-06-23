@@ -1,0 +1,190 @@
+table awb_analytics
+	lineageTag: a1b2c3d4-0001-0001-0001-000000000001
+
+	measure 'Total AWBs' = COUNTROWS('awb_analytics')
+		formatString: #,0
+
+	measure 'Completed AWBs' = CALCULATE(COUNTROWS('awb_analytics'), 'awb_analytics'[is_completed] = TRUE)
+		formatString: #,0
+
+	measure 'Failed AWBs' = CALCULATE(COUNTROWS('awb_analytics'), 'awb_analytics'[is_failed] = TRUE)
+		formatString: #,0
+
+	measure 'Success Rate %' = DIVIDE([Completed AWBs], [Total AWBs])
+		formatString: 0.0%
+
+	measure 'Failure Rate %' = DIVIDE([Failed AWBs], [Total AWBs])
+		formatString: 0.0%
+
+	measure 'Validation Pass Rate %' = DIVIDE(CALCULATE(COUNTROWS('awb_analytics'), 'awb_analytics'[validation_passed] = TRUE), [Total AWBs])
+		formatString: 0.0%
+
+	measure 'Avg OCR Confidence' = AVERAGE('awb_analytics'[ocr_confidence])
+		formatString: 0.0%
+
+	measure 'Avg Processing Seconds' = AVERAGE('awb_analytics'[processing_seconds])
+		formatString: #,0.0
+
+	measure 'P95 Processing Seconds' = PERCENTILE.INC('awb_analytics'[processing_seconds], 0.95)
+		formatString: #,0.0
+
+	measure 'Total Pages' = SUM('awb_analytics'[page_count])
+		formatString: #,0
+
+	measure 'Avg Retries' = AVERAGE('awb_analytics'[retry_attempts])
+		formatString: #,0.00
+
+	column id
+		dataType: int64
+		isHidden
+		lineageTag: a1b2c3d4-0002-0001-0001-000000000001
+		summarizeBy: none
+		sourceColumn: id
+
+	column doc_id
+		dataType: string
+		lineageTag: a1b2c3d4-0002-0001-0001-000000000002
+		summarizeBy: none
+		sourceColumn: doc_id
+
+	column awb_number
+		dataType: string
+		lineageTag: a1b2c3d4-0002-0001-0001-000000000003
+		summarizeBy: none
+		sourceColumn: awb_number
+
+	column document_name
+		dataType: string
+		lineageTag: a1b2c3d4-0002-0001-0001-000000000004
+		summarizeBy: none
+		sourceColumn: document_name
+
+	column flight_number
+		dataType: string
+		lineageTag: a1b2c3d4-0002-0001-0001-000000000005
+		summarizeBy: none
+		sourceColumn: flight_number
+
+	column doc_date
+		dataType: dateTime
+		formatString: yyyy-mm-dd
+		lineageTag: a1b2c3d4-0002-0001-0001-000000000006
+		summarizeBy: none
+		sourceColumn: doc_date
+
+	column source
+		dataType: string
+		lineageTag: a1b2c3d4-0002-0001-0001-000000000007
+		summarizeBy: none
+		sourceColumn: source
+
+	column final_state
+		dataType: string
+		lineageTag: a1b2c3d4-0002-0001-0001-000000000008
+		summarizeBy: none
+		sourceColumn: final_state
+
+	column is_completed
+		dataType: boolean
+		lineageTag: a1b2c3d4-0002-0001-0001-000000000009
+		summarizeBy: none
+		sourceColumn: is_completed
+
+	column is_failed
+		dataType: boolean
+		lineageTag: a1b2c3d4-0002-0001-0001-000000000010
+		summarizeBy: none
+		sourceColumn: is_failed
+
+	column validation_passed
+		dataType: boolean
+		lineageTag: a1b2c3d4-0002-0001-0001-000000000011
+		summarizeBy: none
+		sourceColumn: validation_passed
+
+	column failed_check_count
+		dataType: int64
+		formatString: #,0
+		lineageTag: a1b2c3d4-0002-0001-0001-000000000012
+		summarizeBy: none
+		sourceColumn: failed_check_count
+
+	column ocr_engine
+		dataType: string
+		lineageTag: a1b2c3d4-0002-0001-0001-000000000013
+		summarizeBy: none
+		sourceColumn: ocr_engine
+
+	column ocr_confidence
+		dataType: double
+		formatString: 0.0%
+		lineageTag: a1b2c3d4-0002-0001-0001-000000000014
+		summarizeBy: none
+		sourceColumn: ocr_confidence
+
+	column page_count
+		dataType: int64
+		formatString: #,0
+		lineageTag: a1b2c3d4-0002-0001-0001-000000000015
+		summarizeBy: sum
+		sourceColumn: page_count
+
+	column retry_attempts
+		dataType: int64
+		formatString: #,0
+		lineageTag: a1b2c3d4-0002-0001-0001-000000000016
+		summarizeBy: none
+		sourceColumn: retry_attempts
+
+	column received_at
+		dataType: dateTime
+		formatString: yyyy-mm-dd hh:nn:ss
+		lineageTag: a1b2c3d4-0002-0001-0001-000000000017
+		summarizeBy: none
+		sourceColumn: received_at
+
+	column processed_at
+		dataType: dateTime
+		formatString: yyyy-mm-dd hh:nn:ss
+		lineageTag: a1b2c3d4-0002-0001-0001-000000000018
+		summarizeBy: none
+		sourceColumn: processed_at
+
+	column processing_seconds
+		dataType: double
+		formatString: #,0.0
+		lineageTag: a1b2c3d4-0002-0001-0001-000000000019
+		summarizeBy: none
+		sourceColumn: processing_seconds
+
+	column processed_date
+		dataType: dateTime
+		formatString: yyyy-mm-dd
+		lineageTag: a1b2c3d4-0002-0001-0001-000000000020
+		summarizeBy: none
+		sourceColumn: processed_date
+
+	column output_json_url
+		dataType: string
+		lineageTag: a1b2c3d4-0002-0001-0001-000000000021
+		summarizeBy: none
+		sourceColumn: output_json_url
+		dataCategory: WebUrl
+
+	column output_md_url
+		dataType: string
+		lineageTag: a1b2c3d4-0002-0001-0001-000000000022
+		summarizeBy: none
+		sourceColumn: output_md_url
+		dataCategory: WebUrl
+
+	partition awb_analytics = m
+		mode: directQuery
+		source =
+			let
+			    Source = PostgreSQL.Database(PgServer, PgDatabase),
+			    Data = Source{[Schema="skycargo", Item="vw_awb_analytics"]}[Data]
+			in
+			    Data
+
+	annotation PBI_ResultType = Table

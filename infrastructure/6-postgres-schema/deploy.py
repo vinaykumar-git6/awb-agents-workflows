@@ -20,11 +20,16 @@ def main() -> int:
     cred = AzureCliCredential()
     token = cred.get_token(SCOPE).token
 
-    # The DB user is the signed-in Entra principal (UPN).
+    # The DB user must be the configured Entra admin's principalName,
+    # which differs from the local az account user.name for guest/EXT users.
     import subprocess
 
     user = subprocess.check_output(
-        ["az", "account", "show", "--query", "user.name", "-o", "tsv"],
+        [
+            "az", "postgres", "flexible-server", "microsoft-entra-admin", "list",
+            "-g", "azure-vk-rg", "-s", "devpostgresvinay",
+            "--query", "[0].principalName", "-o", "tsv",
+        ],
         text=True,
         shell=True,
     ).strip()

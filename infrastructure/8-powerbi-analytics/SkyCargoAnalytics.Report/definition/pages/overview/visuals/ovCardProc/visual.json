@@ -1,0 +1,22 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "ovCardProc",
+  "position": { "x": 1024, "y": 80, "z": 5, "width": 240, "height": 116, "tabOrder": 5 },
+  "visual": {
+    "visualType": "card",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "awb_analytics" } }, "Property": "Avg Processing Seconds" } },
+              "queryRef": "awb_analytics.Avg Processing Seconds",
+              "nativeQueryRef": "Avg Processing Seconds"
+            }
+          ]
+        }
+      }
+    },
+    "drillFilterOtherVisuals": true
+  }
+}

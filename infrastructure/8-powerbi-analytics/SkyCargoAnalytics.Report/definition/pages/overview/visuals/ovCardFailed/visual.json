@@ -1,0 +1,22 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "ovCardFailed",
+  "position": { "x": 520, "y": 80, "z": 3, "width": 240, "height": 116, "tabOrder": 3 },
+  "visual": {
+    "visualType": "card",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "awb_analytics" } }, "Property": "Failed AWBs" } },
+              "queryRef": "awb_analytics.Failed AWBs",
+              "nativeQueryRef": "Failed AWBs"
+            }
+          ]
+        }
+      }
+    },
+    "drillFilterOtherVisuals": true
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "ovCardValid",
+  "position": { "x": 772, "y": 80, "z": 4, "width": 240, "height": 116, "tabOrder": 4 },
+  "visual": {
+    "visualType": "card",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "awb_analytics" } }, "Property": "Validation Pass Rate %" } },
+              "queryRef": "awb_analytics.Validation Pass Rate %",
+              "nativeQueryRef": "Validation Pass Rate %"
+            }
+          ]
+        }
+      }
+    },
+    "drillFilterOtherVisuals": true
+  }
+}

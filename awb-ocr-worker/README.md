@@ -34,6 +34,22 @@ carries a **pointer** to a split AWB PDF — the background consumer:
    path: `<prefix>.json` (full Document Intelligence result) and `<prefix>.md`
    (human-readable summary + extracted text).
 
+## Metadata events
+
+The worker **publishes `awb_output` state events** to the `async-db-update-q`
+Service Bus queue (keyless, managed identity), consumed by
+[`awb-db-updater`](../awb-db-updater/README.md):
+
+| Event | When |
+|-------|------|
+| `awb_output` / `inprogress` | OCR started (`receivedAt`) |
+| `awb_output` / `completed` | OCR + normalization succeeded (`outputJsonUrl`, `outputMdUrl`, `processingSeconds`) — drives the `awb_analytics` Power BI row |
+| `awb_output` / `failed` | permanent error or retries exhausted (`attempt`, `errorDetail`) |
+
+A stable `docId` (`pdf/<timestamp>`, derived from the blob path) links the output
+row back to the `awb_input` parent created by the splitter. Publishing is
+**best-effort** — a publish failure is logged but never fails OCR.
+
 ## Source files
 
 | File | Responsibility |
@@ -42,6 +58,7 @@ carries a **pointer** to a split AWB PDF — the background consumer:
 | `consumer.py` | Service Bus receive loop, event parsing, exponential-backoff redelivery, dead-letter logic. |
 | `ocr.py` | Document Intelligence client + `run_ocr` (retry & circuit breaker), and JSON/Markdown builders. |
 | `storage.py` | Blob download (source PDF) and upload (`.json` + `.md`) via managed identity. |
+| `db_events.py` | Publishes `awb_output` stage events to `async-db-update-q` (managed identity, best-effort). |
 | `circuit_breaker.py` | Minimal circuit breaker (`CLOSED`/`OPEN`/`HALF_OPEN`). |
 | `Dockerfile` / `requirements.txt` | Container image and dependencies. |
 
@@ -76,6 +93,7 @@ losing work or hammering the service:
 |----------|---------|-------------|
 | `SERVICEBUS_NAMESPACE` | _(unset → consumer disabled)_ | Fully qualified namespace, e.g. `awb-sb-ek.servicebus.windows.net`. |
 | `SERVICEBUS_QUEUE` | `awb-worker-q` | Queue to consume. |
+| `DB_UPDATE_QUEUE` | `async-db-update-q` | Queue for `awb_output` stage events (managed identity sender). |
 | `BLOB_ACCOUNT_URL` | _(unset → blob disabled)_ | e.g. `https://awbstorageek.blob.core.windows.net`. |
 | `BLOB_OUTPUT_CONTAINER` | `awb-output` | Container for OCR artifacts. |
 | `DOCUMENTINTELLIGENCE_ENDPOINT` | _(required)_ | e.g. `https://docintelligencmbc.cognitiveservices.azure.com/`. |
@@ -98,11 +116,12 @@ Runs with a **system-assigned managed identity**. Required role assignments:
 | ACR (`acrvk012826`) | AcrPull | pull the image |
 | Storage (`awbstorageek`) | Storage Blob Data Contributor | read PDFs, write artifacts |
 | Service Bus (`awb-sb-ek`) | Azure Service Bus Data **Receiver** | consume `awb-worker-q` |
-| Service Bus (`awb-sb-ek`) | Azure Service Bus Data **Sender** | re-schedule messages for backoff (`schedule_messages`) |
+| Service Bus (`awb-sb-ek`) | Azure Service Bus Data **Sender** | re-schedule messages for backoff + publish to `async-db-update-q` |
 | Document Intelligence (`docintelligencmbc`) | Cognitive Services User | call OCR |
 
-> The **Sender** role is essential here (unlike the splitter): the exponential
-> backoff re-enqueues messages onto the same queue.
+> The **Sender** role is essential here: it covers both the exponential-backoff
+> re-enqueue onto `awb-worker-q` and publishing `awb_output` events to
+> `async-db-update-q`.
 
 ## Hosting
 

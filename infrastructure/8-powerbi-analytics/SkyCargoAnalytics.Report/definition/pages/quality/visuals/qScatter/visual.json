@@ -1,0 +1,45 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "qScatter",
+  "position": { "x": 16, "y": 148, "z": 4, "width": 584, "height": 320, "tabOrder": 4 },
+  "visual": {
+    "visualType": "scatterChart",
+    "query": {
+      "queryState": {
+        "Category": {
+          "projections": [
+            {
+              "field": { "Column": { "Expression": { "SourceRef": { "Entity": "awb_analytics" } }, "Property": "awb_number" } },
+              "queryRef": "awb_analytics.awb_number",
+              "nativeQueryRef": "awb_number"
+            }
+          ]
+        },
+        "X": {
+          "projections": [
+            {
+              "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "awb_analytics" } }, "Property": "Avg OCR Confidence" } },
+              "queryRef": "awb_analytics.Avg OCR Confidence",
+              "nativeQueryRef": "Avg OCR Confidence"
+            }
+          ]
+        },
+        "Y": {
+          "projections": [
+            {
+              "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "awb_analytics" } }, "Property": "Avg Processing Seconds" } },
+              "queryRef": "awb_analytics.Avg Processing Seconds",
+              "nativeQueryRef": "Avg Processing Seconds"
+            }
+          ]
+        }
+      }
+    },
+    "objects": {
+      "title": [
+        { "properties": { "text": { "expr": { "Literal": { "Value": "'Confidence vs processing time'" } } } } }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  }
+}

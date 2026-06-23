@@ -25,6 +25,7 @@ from urllib.parse import urlparse
 from azure.identity import DefaultAzureCredential
 from azure.servicebus import ServiceBusClient
 
+import db_events
 import storage
 from splitter import split_pdf
 
@@ -106,16 +107,93 @@ def process_message(message_body: str) -> list[str]:
         logger.info("Skipping non-PDF blob: %s", blob_path)
         return []
 
-    logger.info("Processing blob: %s", blob_url)
-    pdf_bytes = storage.download_blob(blob_url)
-    files = split_pdf(pdf_bytes)
-    if not files:
-        logger.warning("No AWB numbers detected in %s", blob_url)
-        return []
+    doc_id = db_events.doc_id_from_url(blob_url)
+    document_name = blob_path.rsplit("/", 1)[-1]
 
-    dest_prefix = dest_prefix_for(blob_url)
-    written = storage.upload_to_prefix(files, dest_prefix)
-    logger.info("Wrote %d split AWB(s) under %s", len(written), dest_prefix)
+    # State transition: the parent PDF has arrived and splitting is starting.
+    db_events.publish(
+        {
+            "stage": "awb_input",
+            "state": "inprogress",
+            "docId": doc_id,
+            "documentName": document_name,
+            "source": "splitter",
+            "blobUrl": blob_url,
+            "blobName": blob_path,
+        }
+    )
+
+    try:
+        logger.info("Processing blob: %s", blob_url)
+        pdf_bytes = storage.download_blob(blob_url)
+        files = split_pdf(pdf_bytes)
+        if not files:
+            logger.warning("No AWB numbers detected in %s", blob_url)
+            db_events.publish(
+                {
+                    "stage": "awb_input",
+                    "state": "failed",
+                    "docId": doc_id,
+                    "documentName": document_name,
+                    "source": "splitter",
+                    "blobUrl": blob_url,
+                    "blobName": blob_path,
+                    "errorDetail": "No AWB numbers detected in document.",
+                }
+            )
+            return []
+
+        dest_prefix = dest_prefix_for(blob_url)
+        written = storage.upload_to_prefix(files, dest_prefix)
+        logger.info("Wrote %d split AWB(s) under %s", len(written), dest_prefix)
+    except Exception as exc:  # noqa: BLE001 - report failure, then re-raise
+        logger.exception("Splitting failed for %s", blob_url)
+        db_events.publish(
+            {
+                "stage": "awb_input",
+                "state": "failed",
+                "docId": doc_id,
+                "documentName": document_name,
+                "source": "splitter",
+                "blobUrl": blob_url,
+                "blobName": blob_path,
+                "errorDetail": str(exc)[:500],
+            }
+        )
+        raise
+
+    # Parent document split successfully.
+    db_events.publish(
+        {
+            "stage": "awb_input",
+            "state": "completed",
+            "docId": doc_id,
+            "documentName": document_name,
+            "source": "splitter",
+            "blobUrl": blob_url,
+            "blobName": blob_path,
+            "pageCount": len(files),
+        }
+    )
+
+    # One completed awb_split row per detected AWB, linked to the parent docId.
+    for container_path in written:
+        child_name = container_path.rsplit("/", 1)[-1]  # <awb>.pdf
+        awb_number = child_name.rsplit(".pdf", 1)[0]
+        db_events.publish(
+            {
+                "stage": "awb_split",
+                "state": "completed",
+                "docId": doc_id,
+                "parentDocId": doc_id,
+                "awbNumber": awb_number,
+                "documentName": child_name,
+                "source": "splitter",
+                "blobUrl": db_events.blob_url_for(container_path),
+                "blobName": container_path,
+            }
+        )
+
     return written
 
 

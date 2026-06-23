@@ -20,16 +20,30 @@
 -- =============================================================================
 
 -- ---------------------------------------------------------------------------
+-- Schema — all objects below live in the `skycargo` schema.
+-- ---------------------------------------------------------------------------
+CREATE SCHEMA IF NOT EXISTS skycargo;
+SET search_path TO skycargo, public;
+
+-- ---------------------------------------------------------------------------
 -- Enumerated types
 -- ---------------------------------------------------------------------------
 DO $$
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'awb_stage') THEN
-        CREATE TYPE awb_stage AS ENUM ('awb_input', 'awb_split', 'awb_output');
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_type t
+        JOIN pg_namespace n ON n.oid = t.typnamespace
+        WHERE t.typname = 'awb_stage' AND n.nspname = 'skycargo'
+    ) THEN
+        CREATE TYPE skycargo.awb_stage AS ENUM ('awb_input', 'awb_split', 'awb_output');
     END IF;
 
-    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'awb_state') THEN
-        CREATE TYPE awb_state AS ENUM ('inprogress', 'completed', 'failed');
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_type t
+        JOIN pg_namespace n ON n.oid = t.typnamespace
+        WHERE t.typname = 'awb_state' AND n.nspname = 'skycargo'
+    ) THEN
+        CREATE TYPE skycargo.awb_state AS ENUM ('inprogress', 'completed', 'failed');
     END IF;
 END
 $$;
@@ -43,17 +57,17 @@ $$;
 --    * An "awb_split" row transitions to / spawns its "awb_output" record once
 --      OCR + normalization completes.
 -- ---------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS awb_processing (
+CREATE TABLE IF NOT EXISTS skycargo.awb_processing (
     id                BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
 
     -- Logical document identity from the pipeline (claim-check docId).
     doc_id            TEXT        NOT NULL,
 
     -- Self-reference: split / output rows point to their parent input row.
-    parent_id         BIGINT      REFERENCES awb_processing (id) ON DELETE CASCADE,
+    parent_id         BIGINT      REFERENCES skycargo.awb_processing (id) ON DELETE CASCADE,
 
-    stage             awb_stage   NOT NULL,
-    state             awb_state   NOT NULL DEFAULT 'inprogress',
+    stage             skycargo.awb_stage   NOT NULL,
+    state             skycargo.awb_state   NOT NULL DEFAULT 'inprogress',
 
     -- AWB number (NULL for the parent awb_input row; set for split/output).
     awb_number        TEXT,
@@ -91,14 +105,14 @@ CREATE TABLE IF NOT EXISTS awb_processing (
     CONSTRAINT uq_awb_processing UNIQUE (doc_id, stage, awb_number)
 );
 
-CREATE INDEX IF NOT EXISTS ix_awb_processing_parent  ON awb_processing (parent_id);
-CREATE INDEX IF NOT EXISTS ix_awb_processing_stage   ON awb_processing (stage, state);
-CREATE INDEX IF NOT EXISTS ix_awb_processing_awb     ON awb_processing (awb_number);
-CREATE INDEX IF NOT EXISTS ix_awb_processing_docid   ON awb_processing (doc_id);
-CREATE INDEX IF NOT EXISTS ix_awb_processing_created ON awb_processing (created_at);
+CREATE INDEX IF NOT EXISTS ix_awb_processing_parent  ON skycargo.awb_processing (parent_id);
+CREATE INDEX IF NOT EXISTS ix_awb_processing_stage   ON skycargo.awb_processing (stage, state);
+CREATE INDEX IF NOT EXISTS ix_awb_processing_awb     ON skycargo.awb_processing (awb_number);
+CREATE INDEX IF NOT EXISTS ix_awb_processing_docid   ON skycargo.awb_processing (doc_id);
+CREATE INDEX IF NOT EXISTS ix_awb_processing_created ON skycargo.awb_processing (created_at);
 
 -- Keep updated_at fresh on every UPDATE.
-CREATE OR REPLACE FUNCTION set_updated_at()
+CREATE OR REPLACE FUNCTION skycargo.set_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN
     NEW.updated_at := now();
@@ -106,10 +120,10 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-DROP TRIGGER IF EXISTS trg_awb_processing_updated_at ON awb_processing;
+DROP TRIGGER IF EXISTS trg_awb_processing_updated_at ON skycargo.awb_processing;
 CREATE TRIGGER trg_awb_processing_updated_at
-    BEFORE UPDATE ON awb_processing
-    FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+    BEFORE UPDATE ON skycargo.awb_processing
+    FOR EACH ROW EXECUTE FUNCTION skycargo.set_updated_at();
 
 -- ---------------------------------------------------------------------------
 -- 2. Analytics table for Power BI — one row per fully processed AWB.
@@ -117,7 +131,7 @@ CREATE TRIGGER trg_awb_processing_updated_at
 --    Denormalized & flattened so a Power BI DirectQuery / Import model can
 --    slice by flight, date, engine and validation outcome without joins.
 -- ---------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS awb_analytics (
+CREATE TABLE IF NOT EXISTS skycargo.awb_analytics (
     id                  BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
 
     doc_id              TEXT        NOT NULL,
@@ -130,7 +144,7 @@ CREATE TABLE IF NOT EXISTS awb_analytics (
     source              TEXT,
 
     -- Final outcome.
-    final_state         awb_state   NOT NULL,
+    final_state         skycargo.awb_state   NOT NULL,
     validation_passed   BOOLEAN,
     failed_check_count  INTEGER     DEFAULT 0,
 
@@ -145,8 +159,8 @@ CREATE TABLE IF NOT EXISTS awb_analytics (
     processed_at        TIMESTAMPTZ,
     processing_seconds  NUMERIC(10, 2),
 
-    -- Convenience date columns for Power BI time intelligence.
-    processed_date      DATE        GENERATED ALWAYS AS (processed_at::date) STORED,
+    -- Convenience date column for Power BI time intelligence (UTC date).
+    processed_date      DATE        GENERATED ALWAYS AS ((processed_at AT TIME ZONE 'UTC')::date) STORED,
 
     output_json_url     TEXT,
     output_md_url       TEXT,
@@ -154,7 +168,7 @@ CREATE TABLE IF NOT EXISTS awb_analytics (
     CONSTRAINT uq_awb_analytics UNIQUE (doc_id, awb_number)
 );
 
-CREATE INDEX IF NOT EXISTS ix_awb_analytics_flight    ON awb_analytics (flight_number);
-CREATE INDEX IF NOT EXISTS ix_awb_analytics_date      ON awb_analytics (doc_date);
-CREATE INDEX IF NOT EXISTS ix_awb_analytics_state     ON awb_analytics (final_state);
-CREATE INDEX IF NOT EXISTS ix_awb_analytics_processed ON awb_analytics (processed_date);
+CREATE INDEX IF NOT EXISTS ix_awb_analytics_flight    ON skycargo.awb_analytics (flight_number);
+CREATE INDEX IF NOT EXISTS ix_awb_analytics_date      ON skycargo.awb_analytics (doc_date);
+CREATE INDEX IF NOT EXISTS ix_awb_analytics_state     ON skycargo.awb_analytics (final_state);
+CREATE INDEX IF NOT EXISTS ix_awb_analytics_processed ON skycargo.awb_analytics (processed_date);

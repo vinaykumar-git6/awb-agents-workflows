@@ -40,6 +40,24 @@ Split outputs are written to a **separate container** (`awb-split`) so they do
 not re-trigger the splitter's own Event Grid subscription — this structurally
 prevents an infinite split-of-a-split loop.
 
+## Metadata events
+
+At each lifecycle transition the splitter **publishes a state event** to the
+`async-db-update-q` Service Bus queue (keyless, managed identity), consumed by
+[`awb-db-updater`](../awb-db-updater/README.md) which upserts the `skycargo`
+PostgreSQL schema:
+
+| Event | When |
+|-------|------|
+| `awb_input` / `inprogress` | parent PDF picked up, splitting starts |
+| `awb_input` / `completed` | split succeeded (`pageCount` = number of AWBs) |
+| `awb_input` / `failed` | no AWBs detected, or a split error (`errorDetail`) |
+| `awb_split` / `completed` | one per detected AWB (`awbNumber`, `blobUrl`, `parentDocId`) |
+
+A stable `docId` (`pdf/<timestamp>`, derived from the source blob path) links the
+split rows to their `awb_input` parent. Publishing is **best-effort** — a publish
+failure is logged but never fails the split.
+
 ## How AWB detection works
 
 - AWB number format: `NNN-NNNNNNNN` (3-digit airline prefix + 8-digit serial),
@@ -57,6 +75,7 @@ prevents an infinite split-of-a-split loop.
 | `consumer.py` | Service Bus receive loop, event parsing, dead-letter / abandon logic, self-healing reconnect. |
 | `splitter.py` | PDF parsing and per-AWB split logic (`split_pdf`, `build_zip`). |
 | `storage.py` | Blob download (source) and upload (split outputs) via managed identity. |
+| `db_events.py` | Publishes stage/state events to `async-db-update-q` (managed identity, best-effort). |
 | `Dockerfile` / `requirements.txt` | Container image and dependencies. |
 
 ## Reliability
@@ -80,6 +99,7 @@ prevents an infinite split-of-a-split loop.
 | `BLOB_ACCOUNT_URL` | _(unset → blob disabled)_ | e.g. `https://awbstorageek.blob.core.windows.net`. |
 | `BLOB_OUTPUT_CONTAINER` | `awb-split` | Container for split PDFs (separate from input → breaks recursion). |
 | `SPLIT_SUBFOLDER` | `splitted-awb` | Sub-folder under the source timestamp folder. |
+| `DB_UPDATE_QUEUE` | `async-db-update-q` | Queue for stage/state events (managed identity sender). |
 | `AZURE_CLIENT_ID` | _(unset → system-assigned identity)_ | Set only for a user-assigned identity. |
 
 ## Manual HTTP API (optional)
@@ -107,6 +127,7 @@ Runs with a **system-assigned managed identity**. Required role assignments:
 | ACR (`acrvk012826`) | AcrPull |
 | Storage (`awbstorageek`) | Storage Blob Data Contributor |
 | Service Bus (`awb-sb-ek`) | Azure Service Bus Data Receiver |
+| Service Bus (`awb-sb-ek`) | Azure Service Bus Data Sender (publish to `async-db-update-q`) |
 
 ## Hosting
 

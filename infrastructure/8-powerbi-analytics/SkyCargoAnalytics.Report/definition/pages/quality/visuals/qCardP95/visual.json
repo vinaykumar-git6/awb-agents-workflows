@@ -1,0 +1,22 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "qCardP95",
+  "position": { "x": 312, "y": 16, "z": 1, "width": 280, "height": 116, "tabOrder": 1 },
+  "visual": {
+    "visualType": "card",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "awb_analytics" } }, "Property": "P95 Processing Seconds" } },
+              "queryRef": "awb_analytics.P95 Processing Seconds",
+              "nativeQueryRef": "P95 Processing Seconds"
+            }
+          ]
+        }
+      }
+    },
+    "drillFilterOtherVisuals": true
+  }
+}

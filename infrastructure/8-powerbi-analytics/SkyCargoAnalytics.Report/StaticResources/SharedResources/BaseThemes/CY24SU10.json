@@ -1,0 +1,50 @@
+{
+  "name": "SkyCargo",
+  "dataColors": [
+    "#D71921",
+    "#1A1A2E",
+    "#C8A951",
+    "#0E7C7B",
+    "#E08A1E",
+    "#5C6B7A",
+    "#8E1B23",
+    "#3A7CA5"
+  ],
+  "background": "#FFFFFF",
+  "foreground": "#1A1A2E",
+  "tableAccent": "#D71921",
+  "good": "#0E7C7B",
+  "neutral": "#C8A951",
+  "bad": "#D71921",
+  "maximum": "#1A1A2E",
+  "center": "#C8A951",
+  "minimum": "#FFFFFF",
+  "textClasses": {
+    "title": {
+      "color": "#1A1A2E",
+      "fontFace": "Segoe UI Semibold"
+    },
+    "header": {
+      "color": "#1A1A2E",
+      "fontFace": "Segoe UI Semibold"
+    },
+    "label": {
+      "color": "#5C6B7A",
+      "fontFace": "Segoe UI"
+    }
+  },
+  "visualStyles": {
+    "*": {
+      "*": {
+        "background": [{ "show": true, "color": { "solid": { "color": "#FFFFFF" } } }],
+        "border": [{ "show": true, "color": { "solid": { "color": "#E6E6E6" } }, "radius": 6 }]
+      }
+    },
+    "card": {
+      "*": {
+        "labels": [{ "color": { "solid": { "color": "#D71921" } }, "fontSize": 28 }],
+        "categoryLabels": [{ "color": { "solid": { "color": "#5C6B7A" } } }]
+      }
+    }
+  }
+}
