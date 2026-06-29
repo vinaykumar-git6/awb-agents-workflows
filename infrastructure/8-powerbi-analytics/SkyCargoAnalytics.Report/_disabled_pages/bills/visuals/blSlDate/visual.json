@@ -1,0 +1,27 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "blSlDate",
+  "position": { "x": 712, "y": 16, "z": 3, "width": 290, "height": 160, "tabOrder": 3 },
+  "visual": {
+    "visualType": "slicer",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": { "Column": { "Expression": { "SourceRef": { "Entity": "Date" } }, "Property": "Date" } },
+              "queryRef": "Date.Date",
+              "nativeQueryRef": "Date"
+            }
+          ]
+        }
+      }
+    },
+    "objects": {
+      "data": [
+        { "properties": { "mode": { "expr": { "Literal": { "Value": "'Between'" } } } } }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  }
+}

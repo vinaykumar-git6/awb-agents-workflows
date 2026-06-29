@@ -13,18 +13,17 @@
                 "textRuns": [
                   {
                     "value": "SkyCargo — AWB OCR Operations",
-                    "textStyle": { "fontFamily": "Segoe UI Semibold", "fontSize": "22px", "color": "#FFFFFF" }
+                    "textStyle": {
+                      "fontWeight": "bold",
+                      "fontSize": "22pt",
+                      "color": "#1A1A2E"
+                    }
                   }
                 ]
               }
             ]
           }
         }
-      ]
-    },
-    "visualContainerObjects": {
-      "background": [
-        { "properties": { "color": { "solid": { "color": { "expr": { "Literal": { "Value": "'#D71921'" } } } } } } }
       ]
     },
     "drillFilterOtherVisuals": true

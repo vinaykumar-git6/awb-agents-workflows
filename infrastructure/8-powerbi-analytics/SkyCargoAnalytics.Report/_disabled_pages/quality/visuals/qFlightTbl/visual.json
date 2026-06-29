@@ -1,0 +1,47 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "qFlightTbl",
+  "position": { "x": 616, "y": 148, "z": 5, "width": 568, "height": 320, "tabOrder": 5 },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": { "Column": { "Expression": { "SourceRef": { "Entity": "awb_analytics" } }, "Property": "flight_number" } },
+              "queryRef": "awb_analytics.flight_number",
+              "nativeQueryRef": "flight_number"
+            },
+            {
+              "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "awb_analytics" } }, "Property": "Total AWBs" } },
+              "queryRef": "awb_analytics.Total AWBs",
+              "nativeQueryRef": "Total AWBs"
+            },
+            {
+              "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "awb_analytics" } }, "Property": "Success Rate %" } },
+              "queryRef": "awb_analytics.Success Rate %",
+              "nativeQueryRef": "Success Rate %"
+            },
+            {
+              "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "awb_analytics" } }, "Property": "Avg OCR Confidence" } },
+              "queryRef": "awb_analytics.Avg OCR Confidence",
+              "nativeQueryRef": "Avg OCR Confidence"
+            },
+            {
+              "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "awb_analytics" } }, "Property": "Avg Processing Seconds" } },
+              "queryRef": "awb_analytics.Avg Processing Seconds",
+              "nativeQueryRef": "Avg Processing Seconds"
+            }
+          ]
+        }
+      }
+    },
+    "objects": {
+      "title": [
+        { "properties": { "text": { "expr": { "Literal": { "Value": "'Per-flight scorecard'" } } } } }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  }
+}

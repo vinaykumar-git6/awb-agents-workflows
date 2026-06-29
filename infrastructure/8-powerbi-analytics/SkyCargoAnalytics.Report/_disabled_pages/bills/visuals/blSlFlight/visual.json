@@ -1,0 +1,27 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "blSlFlight",
+  "position": { "x": 16, "y": 16, "z": 0, "width": 220, "height": 160, "tabOrder": 0 },
+  "visual": {
+    "visualType": "slicer",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": { "Column": { "Expression": { "SourceRef": { "Entity": "awb_analytics" } }, "Property": "flight_number" } },
+              "queryRef": "awb_analytics.flight_number",
+              "nativeQueryRef": "flight_number"
+            }
+          ]
+        }
+      }
+    },
+    "objects": {
+      "general": [
+        { "properties": { "selfFilterEnabled": { "expr": { "Literal": { "Value": "true" } } } } }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  }
+}

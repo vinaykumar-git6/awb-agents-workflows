@@ -1,0 +1,22 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "blSlEngine",
+  "position": { "x": 480, "y": 16, "z": 2, "width": 220, "height": 160, "tabOrder": 2 },
+  "visual": {
+    "visualType": "slicer",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            {
+              "field": { "Column": { "Expression": { "SourceRef": { "Entity": "awb_analytics" } }, "Property": "ocr_engine" } },
+              "queryRef": "awb_analytics.ocr_engine",
+              "nativeQueryRef": "ocr_engine"
+            }
+          ]
+        }
+      }
+    },
+    "drillFilterOtherVisuals": true
+  }
+}

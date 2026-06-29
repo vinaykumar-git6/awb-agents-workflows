@@ -1,0 +1,37 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "blBillsTbl",
+  "position": { "x": 16, "y": 188, "z": 5, "width": 1248, "height": 516, "tabOrder": 5 },
+  "visual": {
+    "visualType": "tableEx",
+    "query": {
+      "queryState": {
+        "Values": {
+          "projections": [
+            { "field": { "Column": { "Expression": { "SourceRef": { "Entity": "awb_analytics" } }, "Property": "awb_number" } }, "queryRef": "awb_analytics.awb_number", "nativeQueryRef": "awb_number" },
+            { "field": { "Column": { "Expression": { "SourceRef": { "Entity": "awb_analytics" } }, "Property": "document_name" } }, "queryRef": "awb_analytics.document_name", "nativeQueryRef": "document_name" },
+            { "field": { "Column": { "Expression": { "SourceRef": { "Entity": "awb_analytics" } }, "Property": "flight_number" } }, "queryRef": "awb_analytics.flight_number", "nativeQueryRef": "flight_number" },
+            { "field": { "Column": { "Expression": { "SourceRef": { "Entity": "awb_analytics" } }, "Property": "doc_date" } }, "queryRef": "awb_analytics.doc_date", "nativeQueryRef": "doc_date" },
+            { "field": { "Column": { "Expression": { "SourceRef": { "Entity": "awb_analytics" } }, "Property": "final_state" } }, "queryRef": "awb_analytics.final_state", "nativeQueryRef": "final_state" },
+            { "field": { "Column": { "Expression": { "SourceRef": { "Entity": "awb_analytics" } }, "Property": "validation_passed" } }, "queryRef": "awb_analytics.validation_passed", "nativeQueryRef": "validation_passed" },
+            { "field": { "Column": { "Expression": { "SourceRef": { "Entity": "awb_analytics" } }, "Property": "failed_check_count" } }, "queryRef": "awb_analytics.failed_check_count", "nativeQueryRef": "failed_check_count" },
+            { "field": { "Column": { "Expression": { "SourceRef": { "Entity": "awb_analytics" } }, "Property": "ocr_engine" } }, "queryRef": "awb_analytics.ocr_engine", "nativeQueryRef": "ocr_engine" },
+            { "field": { "Column": { "Expression": { "SourceRef": { "Entity": "awb_analytics" } }, "Property": "ocr_confidence" } }, "queryRef": "awb_analytics.ocr_confidence", "nativeQueryRef": "ocr_confidence" },
+            { "field": { "Column": { "Expression": { "SourceRef": { "Entity": "awb_analytics" } }, "Property": "page_count" } }, "queryRef": "awb_analytics.page_count", "nativeQueryRef": "page_count" },
+            { "field": { "Column": { "Expression": { "SourceRef": { "Entity": "awb_analytics" } }, "Property": "retry_attempts" } }, "queryRef": "awb_analytics.retry_attempts", "nativeQueryRef": "retry_attempts" },
+            { "field": { "Column": { "Expression": { "SourceRef": { "Entity": "awb_analytics" } }, "Property": "processed_at" } }, "queryRef": "awb_analytics.processed_at", "nativeQueryRef": "processed_at" },
+            { "field": { "Column": { "Expression": { "SourceRef": { "Entity": "awb_analytics" } }, "Property": "processing_seconds" } }, "queryRef": "awb_analytics.processing_seconds", "nativeQueryRef": "processing_seconds" },
+            { "field": { "Column": { "Expression": { "SourceRef": { "Entity": "awb_analytics" } }, "Property": "output_json_url" } }, "queryRef": "awb_analytics.output_json_url", "nativeQueryRef": "output_json_url" },
+            { "field": { "Column": { "Expression": { "SourceRef": { "Entity": "awb_analytics" } }, "Property": "output_md_url" } }, "queryRef": "awb_analytics.output_md_url", "nativeQueryRef": "output_md_url" }
+          ]
+        }
+      }
+    },
+    "objects": {
+      "title": [
+        { "properties": { "text": { "expr": { "Literal": { "Value": "'All AWB bills'" } } } } }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/1.0.0/schema.json",
+  "name": "qSlaTrend",
+  "position": { "x": 16, "y": 484, "z": 6, "width": 1168, "height": 220, "tabOrder": 6 },
+  "visual": {
+    "visualType": "lineChart",
+    "query": {
+      "queryState": {
+        "Category": {
+          "projections": [
+            {
+              "field": { "Column": { "Expression": { "SourceRef": { "Entity": "Date" } }, "Property": "Date" } },
+              "queryRef": "Date.Date",
+              "nativeQueryRef": "Date"
+            }
+          ]
+        },
+        "Y": {
+          "projections": [
+            {
+              "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "awb_analytics" } }, "Property": "Avg Processing Seconds" } },
+              "queryRef": "awb_analytics.Avg Processing Seconds",
+              "nativeQueryRef": "Avg Processing Seconds"
+            },
+            {
+              "field": { "Measure": { "Expression": { "SourceRef": { "Entity": "awb_analytics" } }, "Property": "P95 Processing Seconds" } },
+              "queryRef": "awb_analytics.P95 Processing Seconds",
+              "nativeQueryRef": "P95 Processing Seconds"
+            }
+          ]
+        }
+      }
+    },
+    "objects": {
+      "title": [
+        { "properties": { "text": { "expr": { "Literal": { "Value": "'Processing-time SLA trend'" } } } } }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  }
+}
